@@ -1,0 +1,10 @@
+/venv
+.claude
+
+# CMake build trees (one subfolder per preset)
+build/
+
+# Reference tensors are regenerated per backend by scripts/ref/, never committed
+engine/tests/reference/
+
+.vscode

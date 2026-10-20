@@ -4,6 +4,8 @@ A working index of everything under consideration for a fully-private, always-on
 
 **Last updated:** 2026-09-01
 
+**Build plan:** the inference engine being built from this catalog is documented in [engine/README.md](engine/README.md) (Ternary Bonsai 8B, C++ on MLX).
+
 ---
 
 ## 0. The Box (hard constraints everything is measured against)
@@ -218,6 +220,8 @@ graph TD
 ```
 
 ### 2.1 Core inference engine ✅
+
+> **Superseded (2026-10):** the chosen model, Ternary Bonsai 8B, ships only in MLX format, so the engine is now a C++ engine on MLX rather than llama.cpp. See [engine/README.md §2](engine/README.md#2-decisions). The text below is kept as the original reasoning.
 
 **One runtime in production, exposing an OpenAI-compatible HTTP endpoint.** Not because that API is good, but because every client, eval tool, and future runtime speaks it — swapping the engine becomes a URL change.
 

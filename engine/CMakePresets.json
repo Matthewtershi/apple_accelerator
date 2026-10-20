@@ -1,0 +1,26 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "linux-cpu-debug",
+      "displayName": "WSL/Linux - MLX CPU backend - Debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "Python_EXECUTABLE": "${sourceParentDir}/venv/bin/python"
+      },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "linux-cpu-debug", "configurePreset": "linux-cpu-debug" }
+  ],
+  "testPresets": [
+    {
+      "name": "linux-cpu-debug",
+      "configurePreset": "linux-cpu-debug",
+      "output": { "outputOnFailure": true }
+    }
+  ]
+}
