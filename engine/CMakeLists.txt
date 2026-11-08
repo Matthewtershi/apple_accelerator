@@ -39,7 +39,7 @@ target_compile_options(bonsai_warnings INTERFACE -Wall -Wextra -Wpedantic -Werro
 
 # The engine as one library; apps and tests link it instead of recompiling sources.
 # json is PRIVATE: no public header includes it, so users of bonsai don't need it.
-add_library(bonsai src/config.cpp src/weights.cpp)
+add_library(bonsai src/config.cpp src/weights.cpp src/model.cpp)
 target_include_directories(bonsai PUBLIC include)
 target_link_libraries(bonsai PUBLIC mlx PRIVATE nlohmann_json::nlohmann_json bonsai_warnings)
 
@@ -55,10 +55,14 @@ list(APPEND CMAKE_MODULE_PATH "${catch2_SOURCE_DIR}/extras")
 include(Catch)
 
 # One executable per test file; Catch2WithMain supplies main()
-foreach(test test_smoke test_config test_weights)
+foreach(test test_smoke test_config test_weights test_layers)
   add_executable(${test} tests/${test}.cpp)
   target_link_libraries(${test} PRIVATE bonsai Catch2::Catch2WithMain bonsai_warnings)
   catch_discover_tests(${test})
 endforeach()
-# test_config builds its JSON fixtures with nlohmann directly
+
 target_link_libraries(test_config PRIVATE nlohmann_json::nlohmann_json)
+
+# Compile-time constant: the test finds references without depending on the working directory
+target_compile_definitions(test_layers PRIVATE
+  BONSAI_REFERENCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/reference")
