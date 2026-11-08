@@ -6,6 +6,8 @@ A working index of everything under consideration for a fully-private, always-on
 
 **Build plan:** the inference engine being built from this catalog is documented in [engine/README.md](engine/README.md) (Ternary Bonsai 8B, C++ on MLX).
 
+**Sources:** https://github.com/andrewekhalel/MLQuestions#machine-learning-fundamentals
+
 ---
 
 ## 0. The Box (hard constraints everything is measured against)

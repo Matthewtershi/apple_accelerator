@@ -26,20 +26,39 @@ FetchContent_Declare(
   GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(Catch2)
 
+# Header-only JSON parser for config.json; the release tarball is smaller than a clone
+FetchContent_Declare(
+  json
+  URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
+FetchContent_MakeAvailable(json)
+
 # INTERFACE library: holds no code, just carries flags to whatever links it.
 # Applied only to our targets so warnings inside Catch2 can't break our build.
 add_library(bonsai_warnings INTERFACE)
 target_compile_options(bonsai_warnings INTERFACE -Wall -Wextra -Wpedantic -Werror)
 
+# The engine as one library; apps and tests link it instead of recompiling sources.
+# json is PRIVATE: no public header includes it, so users of bonsai don't need it.
+add_library(bonsai src/config.cpp src/weights.cpp)
+target_include_directories(bonsai PUBLIC include)
+target_link_libraries(bonsai PUBLIC mlx PRIVATE nlohmann_json::nlohmann_json bonsai_warnings)
+
 add_executable(hello_mlx apps/hello_mlx.cpp)
 target_link_libraries(hello_mlx PRIVATE mlx bonsai_warnings)
 
-enable_testing()
-add_executable(test_smoke tests/test_smoke.cpp)
-# Catch2WithMain supplies main(), so test files contain only TEST_CASEs
-target_link_libraries(test_smoke PRIVATE mlx Catch2::Catch2WithMain bonsai_warnings)
+add_executable(inspect apps/inspect.cpp)
+target_link_libraries(inspect PRIVATE bonsai bonsai_warnings)
 
+enable_testing()
 # catch_discover_tests registers each TEST_CASE with ctest individually
 list(APPEND CMAKE_MODULE_PATH "${catch2_SOURCE_DIR}/extras")
 include(Catch)
-catch_discover_tests(test_smoke)
+
+# One executable per test file; Catch2WithMain supplies main()
+foreach(test test_smoke test_config test_weights)
+  add_executable(${test} tests/${test}.cpp)
+  target_link_libraries(${test} PRIVATE bonsai Catch2::Catch2WithMain bonsai_warnings)
+  catch_discover_tests(${test})
+endforeach()
+# test_config builds its JSON fixtures with nlohmann directly
+target_link_libraries(test_config PRIVATE nlohmann_json::nlohmann_json)

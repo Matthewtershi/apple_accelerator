@@ -84,25 +84,30 @@ This is the **build plan** for the inference engine described in the research ca
 | Positional encoding | RoPE |
 | Norm | RMSNorm |
 | Context | 65,536 tokens |
-| Vocab | 151,936 |
+| Vocab | 151,669 (`config.json`; verified in M2) |
 | Weights | Ternary {−1, 0, +1}, one FP16 scale per group of 128 |
 | Storage | MLX 2-bit format, ~2.125 bits/weight, 2.3 GB total |
 | Ternary coverage | Embeddings, attention projections, MLP projections, LM head |
 
-### 3.2 Facts to verify in M2 (from Qwen3-8B, not stated on the card)
+### 3.2 Facts verified in M2
 
-Read these from `config.json` and the safetensors header instead of trusting this table:
+Checked against `config.json` and the safetensors file by `scripts/inspect_reference.py` (Python) and `apps/inspect` (C++). Both print identical tensor lists.
 
-| Item | Expected | Why it matters |
+| Item | Verified value | Why it matters |
 |---|---|---|
-| `hidden_size` | 4096 | Every matmul shape |
-| `intermediate_size` | 12288 | MLP shapes |
-| `rope_theta` | 1,000,000 | RoPE base |
-| `rms_norm_eps` | 1e-6 | RMSNorm epsilon |
-| `tie_word_embeddings` | false (separate `lm_head`) | Whether the output projection reuses the embedding |
-| QK-norm | `q_norm` and `k_norm` per layer | **Qwen3-specific:** an RMSNorm over each head's 128 dims, applied to Q and K *before* RoPE. Easy to miss when porting |
-| `quantization` | `{"group_size": 128, "bits": 2}` | Arguments to `quantized_matmul` / `dequantize` |
-| Scales and biases | Probably standard MLX affine quantization (`.scales` and `.biases` tensors). Ternary maps onto 2-bit as `q ∈ {0,1,2}`, `w = scale·q + bias` with `bias = −scale` | Decides whether MLX's built-in quantized ops work as-is (the card says they do) |
+| `hidden_size` | 4096 ✅ | Every matmul shape |
+| `intermediate_size` | 12288 ✅ | MLP shapes |
+| `vocab_size` | **151,669** (not 151,936; embedding and `lm_head` are not padded) | Embedding and `lm_head` shapes |
+| `rope_theta` | 1,000,000 ✅ | RoPE base |
+| `rope_scaling` | **YaRN, factor 4, `original_max_position_embeddings` 16,384** (not in the original table) | RoPE is not plain RoPE: YaRN is how the model reaches 65K context. Needed in M4 |
+| `rms_norm_eps` | 1e-6 ✅ | RMSNorm epsilon |
+| `tie_word_embeddings` | false ✅ (separate `lm_head`) | Whether the output projection reuses the embedding |
+| QK-norm | `q_norm` and `k_norm` present in every layer, shape `[128]` ✅ | **Qwen3-specific:** an RMSNorm over each head's 128 dims, applied to Q and K *before* RoPE. Easy to miss when porting |
+| `quantization` | `{"group_size": 128, "bits": 2}` ✅ | Arguments to `quantized_matmul` / `dequantize` |
+| Scales and biases | Standard MLX affine (`.scales`, `.biases`, fp16). `max |bias + scale| = 0.0` over every quantized tensor, so **`bias = −scale` exactly** ✅ | MLX's built-in quantized ops work as-is. The bias is fully redundant, which is the basis of the M11 packing saving |
+| Ternary codes | Layer 0 `q_proj` code counts `[0,1,2,3]` = `[5.49M, 5.79M, 5.49M, 0]`. Code 3 never appears ✅ | Truly ternary (`w = scale·(q − 1)`, ~35% zeros), so 5-trits-per-byte packing is possible |
+| Tensor count | 907 = 6 (embed + `lm_head`, 3 each) + 1 (`model.norm`) + 36 × 25 | Checked by `Weights::load` |
+| Files | One shard, `model.safetensors` (2,303,661,704 bytes) | No multi-shard loading needed |
 
 ### 3.3 Expected tensor names
 

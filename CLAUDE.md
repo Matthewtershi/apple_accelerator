@@ -23,7 +23,12 @@ The owner is learning C++ through this project. **They write every line of code 
 - Dev box is WSL (MLX CPU backend). Never present WSL timings as benchmarks.
 
 ## Build & test
-_Not set up yet. Fill in once M1 lands (CMake presets `linux-cpu-debug`, `macos-metal-release`; Catch2 tests)._
+Run from `engine/` (WSL preset shown; `macos-metal-release` not added yet):
+- Configure: `cmake --preset linux-cpu-debug`
+- Build: `cmake --build --preset linux-cpu-debug`
+- Test: `ctest --preset linux-cpu-debug`
+- Inspect model: `./build/linux-cpu-debug/inspect ~/models/Ternary-Bonsai-8B-mlx-2bit > /tmp/cpp_tensors.txt`, then `diff scripts/reference_tensors.txt /tmp/cpp_tensors.txt` (must be empty)
+- Python reference: `python -I scripts/inspect_reference.py <model.safetensors>` (venv at `../venv`)
 
 ## C++ conventions
 - C++20, `namespace bonsai`, `namespace mx = mlx::core;`

@@ -8,3 +8,5 @@ build/
 engine/tests/reference/
 
 .vscode
+# Downloaded model weights (2.3 GB), fetched with hf download, never committed
+models/
